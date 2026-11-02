@@ -25,6 +25,7 @@ Il segnale è **solo il colore dell'icona**. Le altre opzioni si attivano dal me
   ```
   (il plugin viene copiato in `~/.config/opencode/plugins/`)
 - Nessun diritto di amministratore richiesto: tutto in `HKCU` e `%LOCALAPPDATA%`
+- **Linux (GNOME)**: estensione Shell + listener Python; richiede `python3`, `gnome-extensions` e sessione GNOME attiva
 
 ## Installazione
 
@@ -60,10 +61,71 @@ L'installer:
 > **Dopo l'installazione riavvia opencode**: la configurazione, come tutti i plugin, viene
 > caricata una sola volta all'avvio.
 
+## Installazione Linux (GNOME)
+
+Il componente tray su Linux è un'**estensione GNOME Shell** (indicatore nella panel) + un
+**listener Python** che ascolta lo stesso HTTP POST del plugin `opencode-tray.js`.
+Il plugin JS non cambia: è lo stesso `plugin/opencode-tray.js` usato su Windows.
+
+### Comandi rapidi
+
+```bash
+# da questa cartella
+bash install-linux.sh
+```
+
+Lo script:
+
+1. copia `gnome-extension/` in `~/.local/share/gnome-shell/extensions/opencode-tray@local/`;
+2. copia `plugin/opencode-tray.js` in `~/.config/opencode/plugins/` (se presente);
+3. scrive `~/.config/opencode-tray/settings.json` (porta `47110`, default come Windows);
+4. crea il file di autostart `~/.config/autostart/opencode-tray.desktop`;
+5. avvia il listener in background (`python3 listener/opencode-tray-listener.py`);
+6. abilita l'estensione (se `gnome-extensions` è disponibile).
+
+Poi **ricarica GNOME Shell** (`Alt+F2` → `r` su X11; su Wayland disconnetti / rientra) e attiva
+l'estensione da **GNOME Tweaks / Extensions** (o `gsettings`).
+
+### Riavvio / avvio manuale
+
+```bash
+bash linux-start.sh
+```
+
+Questo controlla se il listener è già su `47110`; se no lo avvia (`nohup`) e abilita
+l'estensione. Per disattivare invece:
+
+```bash
+gnome-extensions disable opencode-tray@local
+# o rimuovi la cartella dell'estensione:
+rm -rf ~/.local/share/gnome-shell/extensions/opencode-tray@local
+```
+
+### Percorsi Linux
+
+| Componente | Path |
+| --- | --- |
+| Estensione GNOME | `~/.local/share/gnome-shell/extensions/opencode-tray@local/` |
+| Listener | `.../listener/opencode-tray-listener.py` |
+| Stato atomico (tmp) | `/tmp/opencode-tray-state.json` |
+| Plugin opencode | `~/.config/opencode/plugins/opencode-tray.js` |
+| Impostazioni | `~/.config/opencode-tray/settings.json` |
+| Log listener | `/tmp/opencode-tray-listener.log` |
+
+Per dettagli sull'indice dell'indicatore (sinistra dell'orologio) o sulla finestra costi,
+vedi `gnome-extension/README.md`.
+
 ## Uso
 
-- L'icona sta nella tendina delle icone nascoste. Se non la vedi, trascinala fuori dalla
-  tendina per fissarla nella barra (Windows lo ricorda).
+**Windows**: l'icona sta nella tendina delle icone nascoste. Se non la vedi, trascinala fuori dalla
+freccia `^` in basso a destra per fissarla nella barra (Windows lo ricorda).
+
+**Linux**: l'indicatore è nella panel (a sinistra dell'orologio, per default `index: 0` in
+`settings.json`). Se non compare dopo `Alt+F2 r`, controlla che l'estensione sia attiva
+(GNOME Tweaks / Extensions) e che il listener sia in esecuzione (`ps aux | grep listener`).
+- **Clic sinistro** sull'icona = menu (stato, costi, progetti, toggle, exit).
+- Il menu e gli stati sono gli stessi di Windows (nero / verde / giallo); la finestra costi
+si apre con `cost-info-window.py` (vedi `gnome-extension/README.md`).
 - **Doppio click** sull'icona = menu:
 
 | Voce | Effetto |
@@ -99,7 +161,7 @@ L'installer:
   stesso progetto non si contano due volte e un opencode chiuso non fa sparire il totale.
 
 Le impostazioni si possono anche scrivere a mano in
-`%APPDATA%\opencode-tray\settings.json`:
+`%APPDATA%\opencode-tray\settings.json` (Windows) o `~/.config/opencode-tray/settings.json` (Linux):
 
 ```json
 {
@@ -135,6 +197,21 @@ powershell -ExecutionPolicy Bypass -File uninstall.ps1 -KeepPlugin -KeepSettings
 
 Dopo la disinstallazione **riavvia opencode**, altrimenti il plugin resta caricato nella
 sessione corrente (e invia solo POST falliti, ignorati).
+
+### Disinstallazione Linux
+
+```bash
+# disattiva estensione e rimuovi listener/autostart
+rm -rf ~/.local/share/gnome-shell/extensions/opencode-tray@local
+rm -rf ~/.config/autostart/opencode-tray.desktop
+# opzione: rimuovi anche plugin e impostazioni
+rm -rf ~/.config/opencode/plugins/opencode-tray.js
+rm -rf ~/.config/opencode-tray
+# uccidi listener se ancora attivo
+kill $(pgrep -f 'opencode-tray-listener.py') 2>/dev/null || true
+```
+
+Poi ricarica GNOME Shell (`Alt+F2 r`) se vuoi rimuovere l'indicatore immediatamente.
 
 ## Come funziona
 
@@ -174,8 +251,11 @@ silentnotification_opencode/
 ├── install.ps1                     installer
 ├── uninstall.ps1                   disinstallatore (copiato anche nella cartella di installazione)
 ├── build.ps1                       compilazione (csc.exe del .NET Framework)
-├── plugin/opencode-tray.js         plugin opencode (copiato in ~/.config/opencode/plugins/)
-├── src/OpencodeTray.cs             app tray: icona, stati, menu, server
+├── install-linux.sh                 installer Linux (GNOME)
+├── linux-start.sh                   avvio manuale listener + estensione
+├── plugin/opencode-tray.js         plugin opencode (copiato in ~/.config/opencode/plugins/; invariato su Linux)
+├── src/OpencodeTray.cs             app tray Windows: icona, stati, menu, server
+├── gnome-extension/                estensione GNOME Shell + listener Python + cost-info-window
 ├── dist/                           eseguibile compilato (build.ps1)
 └── readme.md                       questo file
 ```
