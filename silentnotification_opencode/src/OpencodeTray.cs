@@ -14,9 +14,9 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
-// Opencode Tray - icona nella notification area (menu a tendina) di Windows.
-// Stati: Idle (nera) / Working (verde) / Attention (gialla + warning).
-// Compilato con csc.exe (.NET Framework 4.x): nessuna dipendenza esterna.
+// Opencode Tray - icon in the Windows notification area (dropdown menu).
+// States: Idle (black) / Working (green) / Attention (yellow + warning).
+// Compiled with csc.exe (.NET Framework 4.x): no external dependencies.
 namespace OpencodeTray
 {
     internal enum TrayState
@@ -39,7 +39,7 @@ namespace OpencodeTray
     }
 
     // Riga "provider|model|pricedAs|input|output|reasoning|cacheRead|cacheWrite|cost"
-    // inviata dal plugin per ciascun modello usato (stima token x listino).
+    // sent by plugin for each model used (token estimate x price list).
     internal sealed class ModelStat
     {
         public string Provider = string.Empty;
@@ -65,9 +65,9 @@ namespace OpencodeTray
             Cost += d.Cost;
         }
 
-        // Differenza fra il cumulativo ricevuto adesso e quello di prima.
-        // Se il cumulativo e' calato (il plugin e' ripartito da zero) si
-        // considera tutto nuovo: cosi' il totale non torna mai indietro.
+        // Difference between cumulative received now and previous one.
+        // If cumulative decreased (plugin restarted from zero) everything
+        // is considered new: so total never goes backward.
         public static ModelStat Delta(ModelStat cur, ModelStat last)
         {
             if (last == null) return cur.Clone();
@@ -93,7 +93,7 @@ namespace OpencodeTray
         }
     }
 
-    // Dati di una sessione opencode (una riga del protocollo).
+    // Data for an opencode session (one protocol line).
     internal sealed class SessionUpdate
     {
         public string Sid = string.Empty;
@@ -108,7 +108,7 @@ namespace OpencodeTray
         public Dictionary<string, ModelStat> Models = new Dictionary<string, ModelStat>();
     }
 
-    // Sessione opencode nota dal tray: cumulativi ricevuti, delta accumulati.
+    // Opencode session known to tray: received cumulatives, accumulated deltas.
     internal sealed class SessionStat
     {
         public string Sid = string.Empty;
@@ -128,7 +128,7 @@ namespace OpencodeTray
         public Dictionary<string, ModelStat> Totals = new Dictionary<string, ModelStat>();
     }
 
-    // "Istanza" = progetto (cartella di lavoro) su cui gira opencode.
+    // "Instance" = project (work folder) on which opencode runs.
     internal sealed class Instance
     {
         public string Path = string.Empty;
@@ -140,9 +140,9 @@ namespace OpencodeTray
         public string Activity = string.Empty;
 
         public Dictionary<string, SessionStat> Sessions = new Dictionary<string, SessionStat>();
-        // costi accumulati per modello (somma dei delta ricevuti)
+        // accumulated costs per model (sum of received deltas)
         public Dictionary<string, ModelStat> Totals = new Dictionary<string, ModelStat>();
-        // baseline fissata da "Azzera conteggio costi": il menu mostra ricevuto - base
+        // baseline fixed by "Reset cost count": menu shows received - base
         public Dictionary<string, ModelStat> Base = new Dictionary<string, ModelStat>();
 
         public ModelStat TotalOf(string key)
@@ -209,7 +209,7 @@ namespace OpencodeTray
     {
         public int Port = 47110;
         // Stealth di default: nessun popup, nessun suono, nessuna animazione.
-        // Il segnale e' solo il colore dell'icona. Le altre opzioni si attivano dal menu.
+        // The signal is only the icon color. Other options are activated from the menu.
         public bool Balloon = false;
         public bool Sound = false;
         public bool Flash = false;
@@ -755,7 +755,7 @@ namespace OpencodeTray
             }
 
             // --show-costs : apre subito la finestra della stima costi
-            // --show-menu  : apre subito il menu dell'icona
+            // --show-menu  : opens icon menu immediately
             foreach (string arg in args)
             {
                 if (arg != "--show-costs" && arg != "--show-menu") continue;
@@ -781,7 +781,7 @@ namespace OpencodeTray
         {
             ContextMenuStrip menu = new ContextMenuStrip();
 
-            _statusItem = new ToolStripMenuItem("stato: inattivo");
+            _statusItem = new ToolStripMenuItem("status: inactive");
             _statusItem.Enabled = false;
             menu.Items.Add(_statusItem);
 
@@ -789,59 +789,59 @@ namespace OpencodeTray
             _costItem.Enabled = false;
             menu.Items.Add(_costItem);
 
-            _projectsItem = new ToolStripMenuItem("Istanze opencode");
+            _projectsItem = new ToolStripMenuItem("OpenCode instances");
             _projectsItem.Enabled = true;
             menu.Items.Add(_projectsItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            _resetCostItem = new ToolStripMenuItem("Azzera conteggio costi");
+            _resetCostItem = new ToolStripMenuItem("Reset cost count");
             _resetCostItem.Click += delegate { ResetCosts(); };
             menu.Items.Add(_resetCostItem);
 
-            _costInfoItem = new ToolStripMenuItem("Info costi (modello - token)");
+            _costInfoItem = new ToolStripMenuItem("Cost info (model - token)");
             _costInfoItem.Click += delegate { ShowCostInfo(); };
             menu.Items.Add(_costInfoItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            _balloonItem = new ToolStripMenuItem("Popup di notifica");
+            _balloonItem = new ToolStripMenuItem("Notification popup");
             _balloonItem.Checked = _settings.Balloon;
             _balloonItem.Click += delegate { _settings.Balloon = !_settings.Balloon; _settings.Save(); RefreshMenu(); };
             menu.Items.Add(_balloonItem);
 
-            _soundItem = new ToolStripMenuItem("Suono di avviso");
+            _soundItem = new ToolStripMenuItem("Warning sound");
             _soundItem.Checked = _settings.Sound;
             _soundItem.Click += delegate { _settings.Sound = !_settings.Sound; _settings.Save(); RefreshMenu(); };
             menu.Items.Add(_soundItem);
 
-            _flashItem = new ToolStripMenuItem("Icona lampeggiante in attesa");
+            _flashItem = new ToolStripMenuItem("Blinking icon when waiting");
             _flashItem.Checked = _settings.Flash;
             _flashItem.Click += delegate { _settings.Flash = !_settings.Flash; _settings.Save(); RefreshMenu(); };
             menu.Items.Add(_flashItem);
 
-            _autostartItem = new ToolStripMenuItem("Avvia con Windows");
+            _autostartItem = new ToolStripMenuItem("Start with Windows");
             _autostartItem.Checked = _settings.StartWithWindows;
             _autostartItem.Click += OnToggleAutostart;
             menu.Items.Add(_autostartItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem cfg = new ToolStripMenuItem("Apri configurazione opencode");
+            ToolStripMenuItem cfg = new ToolStripMenuItem("Open opencode config");
             cfg.Click += delegate { OpenFolder(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "opencode")); };
             menu.Items.Add(cfg);
 
-            ToolStripMenuItem inst = new ToolStripMenuItem("Apri cartella di installazione");
+            ToolStripMenuItem inst = new ToolStripMenuItem("Open installation folder");
             inst.Click += delegate { OpenFolder(AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\')); };
             menu.Items.Add(inst);
 
-            ToolStripMenuItem log = new ToolStripMenuItem("Apri configurazione tray");
+            ToolStripMenuItem log = new ToolStripMenuItem("Open tray config");
             log.Click += delegate { OpenFolder(Settings.ConfigDir); };
             menu.Items.Add(log);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem exit = new ToolStripMenuItem("Esci");
+            ToolStripMenuItem exit = new ToolStripMenuItem("Exit");
             exit.Click += delegate { ExitThread(); };
             menu.Items.Add(exit);
 
@@ -876,7 +876,7 @@ namespace OpencodeTray
             _projectsItem.DropDownItems.Clear();
             if (list.Count == 0)
             {
-                ToolStripMenuItem none = new ToolStripMenuItem("nessuna istanza opencode attiva");
+                ToolStripMenuItem none = new ToolStripMenuItem("no active opencode instance");
                 none.Enabled = false;
                 _projectsItem.DropDownItems.Add(none);
             }
@@ -892,7 +892,7 @@ namespace OpencodeTray
                 }
                 if (_projectsItem.DropDownItems.Count == 0)
                 {
-                    ToolStripMenuItem none = new ToolStripMenuItem("nessuna istanza opencode attiva");
+                    ToolStripMenuItem none = new ToolStripMenuItem("no active opencode instance");
                     none.Enabled = false;
                     _projectsItem.DropDownItems.Add(none);
                 }
@@ -1351,7 +1351,7 @@ namespace OpencodeTray
                         inst.Path = path;
                         inst.Name = project;
                         _instances[key] = inst;
-                        // base di conteggio già salvata in precedenza
+                        // counting baseline already saved previously
                         Dictionary<string, ModelStat> saved;
                         if (_baseStore.TryGetValue(key, out saved))
                         {

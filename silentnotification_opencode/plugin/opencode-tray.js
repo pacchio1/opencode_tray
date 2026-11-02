@@ -1,30 +1,30 @@
 /**
  * opencode-tray - plugin bridge
  *
- * Invia lo stato delle sessioni opencode all'icona nella notification area di Windows:
+ * Sends opencode session state to the icon in the Windows notification area:
  *
- *   idle      -> icona nera    (ho finito / sto aspettando che tu scriva)
- *   working   -> icona verde   (sta lavorando: modello o tool in corso)
- *   attention -> icona gialla  (serve davvero una tua risposta: domanda,
- *                               permissione, errore, connessione instabile)
+ *   idle      -> black icon    (finished / waiting for you to write)
+ *   working   -> green icon    (working: model or tool running)
+ *   attention -> yellow icon   (really needs your response: question,
+ *                               permission, error, unstable connection)
  *
- * Il giallo resta acceso finche' la richiesta non e' stata soddisfatta, quindi
- * NON si accende a ogni fine turno: se opencode ha semplicemente finito di
- * scrivere e aspetta il prossimo messaggio, l'icona resta nera.
+ * Yellow stays on until the request is satisfied, so it does NOT turn on
+ * at every end of turn: if opencode has simply finished writing and is waiting
+ * for the next message, the icon stays black.
  *
- * Ogni sessione viene seguita separatamente: il tray raggruppa per progetto
- * (cartella di lavoro), cosi' si vede quale progetto sta andando e quale e'
- * bloccato in attesa di una risposta.
+ * Each session is followed separately: the tray groups by project
+ * (work folder), so you can see which project is going and which is
+ * blocked waiting for a response.
  *
- * La stima dei costi e' "quanto pagherei se il modello non fosse gratis":
- * i modelli gratuiti (es. "-free") vengono valutati con il listino del
- * gemello a pagamento (es. minimax-m3.1-flash-free -> minimax-m3).
- * Nella stima entrano SOLO i token dei provider di opencode ("opencode",
- * "opencode-go"): quelli passati da openrouter hanno un listino diverso e
- * vengono esclusi.
+ * Cost estimation is "how much would I pay if the model were not free":
+ * free models (e.g. "-free") are evaluated with the price list of the
+ * closest paid twin (e.g. minimax-m3.1-flash-free -> minimax-m3).
+ * Only opencode provider tokens enter the estimate ("opencode",
+ * "opencode-go"): those passed by openrouter have a different list
+ * and are excluded.
  *
- * L'app tray ascolta su 127.0.0.1:47110 (variabile OPENCODE_TRAY_PORT per cambiarla).
- * Se l'app tray non e' in esecuzione la richiesta fallisce e viene ignorata.
+ * The tray app listens on 127.0.0.1:47110 (variable OPENCODE_TRAY_PORT to change).
+ * If the tray app is not running the request fails and is ignored.
  */
 
 const PORT = Number(process.env.OPENCODE_TRAY_PORT || 47110)
@@ -34,29 +34,29 @@ const TIMEOUT_MS = 800
 
 const INSTANCE = String(process.pid || "0")
 
-// versione del plugin: il tray non la usa, serve solo a verificare quale
-// versione e' stata caricata in memoria da ciascun processo opencode
+// plugin version: tray does not use it, only to verify which
+// version was loaded in memory by each opencode process
 const PLUGIN_V = 12
 
-const REASON_QUESTION = "opencode ti chiede una risposta"
-const REASON_PERMISSION = "opencode chiede una permissione"
-const REASON_ERROR = "errore durante l'esecuzione"
-const REASON_RETRY = "connessione instabile: sto riprovando"
+const REASON_QUESTION = "opencode asks you for a response"
+const REASON_PERMISSION = "opencode asks for a permission"
+const REASON_ERROR = "error during execution"
+const REASON_RETRY = "unstable connection: retrying"
 
 const QUESTION_TOOLS = ["question", "ask_user", "askuser", "ask", "ask_user_question"]
 
-// nomi dei tool gia' visti (diagnostica: quale tool chiede all'utente)
+// names of already seen tools (diagnostics: which tool asks the user)
 const seenTools = new Set()
 
 // sessionID -> entry
-//   state    : idle | working | attention (stato mostrato)
-//   reason   : testo dello stato mostrato
-//   pending  : richiesta aperta che aspetta l'utente; se valorizzata forza
-//              "attention" anche a fine turno, finche' non viene soddisfatta
-//   cwd      : cartella di lavoro della sessione (dal messaggio)
-//   project  : nome della cartella di lavoro
-//   activity : cosa sta facendo adesso (tool in corso, "risposta", "modello")
-//   lastModel: ultimo modello/provider visto in questa sessione
+//   state    : idle | working | attention (shown state)
+//   reason   : shown status text
+//   pending  : open request waiting for user; if set forces
+//              "attention" even at end of turn, until satisfied
+//   cwd      : session work folder (from message)
+//   project  : work folder name
+//   activity : what it is doing now (running tool, "response", "model")
+//   lastModel: last model/provider seen in this session
 const sessions = new Map()
 
 let sent = { state: "idle", reason: "" }
@@ -65,24 +65,24 @@ let pending = null
 let lastEventAt = Date.now()
 
 // messageID -> { providerID, modelID, sessionID, cwd, project }
-// Il modello sta nel messaggio assistant.
+// The model is in the assistant message.
 const msgModel = new Map()
 
-// Totali cumulativi per sessione e modello: sessionID -> Map("provider\0model" -> stats)
-// Sono la fonte di verita' del totale: non vengono mai potati, cosi' il costo
-// non "torna indietro" quando la finestra temporale scade.
+// Cumulative totals per session and model: sessionID -> Map("provider\0model" -> stats)
+// They are the source of truth for the total: never pruned, so cost
+// does not "go backward" when the time window expires.
 const acc = new Map()
 
-// Costo per ora ("yyyy-MM-dd HH"): serve per le finestre 24 ore / 7 giorni e
-// per la proiezione settimanale. Viene potato a 31 giorni.
+// Cost per hour ("yyyy-MM-dd HH"): for 24-hour / 7-day windows and
+// weekly projection. Pruned to 31 days.
 const buckets = new Map()
 
 // Step gia' contati (partID -> { sid, at }): evita di contare due volte lo
 // stesso step e viene potato a 14 giorni.
 const seenSteps = new Map()
 
-// Metadati delle sessioni (sid -> { project, cwd, firstAt }): salvati su disco
-// cosi' il totale non riparte da zero quando opencode viene riavviato.
+// Session metadata (sid -> { project, cwd, firstAt }): saved to disk
+// so total does not restart from zero when opencode is restarted.
 const sessionMeta = new Map()
 
 const BUCKET_KEEP_MS = 31 * 24 * 3600 * 1000
@@ -90,11 +90,11 @@ const SEEN_KEEP_MS = 14 * 24 * 3600 * 1000
 const SESSION_KEEP_MS = 45 * 24 * 3600 * 1000
 const SAVE_EVERY_MS = 20000
 
-// diagnostica: tipi di evento gia' visti (per capire cosa arriva dalla bus)
+// diagnostics: already seen event types (to understand what arrives from bus)
 const seenEvents = new Set()
 let lastDiagTotal = -1
 
-// Listino prezzi ($ per milione di token) preso dal registry locale di opencode
+// Price list ($ per million tokens) taken from opencode local registry
 // (~/.cache/opencode/models.json): serve a stimare il costo anche per i modelli
 // "gratis" (o serviti via abbonamento) per cui opencode riporta cost = 0.
 let priceTable = null

@@ -1,13 +1,13 @@
-# Port Linux / GNOME del tray opencode
+# Linux / GNOME port of opencode-tray
 
-## Cosa fa
-Replica su Linux (estensione GNOME Shell) tutti i comportamenti estratti da
-`src/OpencodeTray.cs` senza toccare la logica dell'app opencode.
+## What it does
+Linux replica (GNOME Shell extension) of all behaviors extracted from
+`src/OpencodeTray.cs` without touching opencode app logic.
 
 ## Architettura
-- **Plugin** (`plugin/opencode-tray.js`): **invariato**. Continua a fare POST su `127.0.0.1:47110`.
-- **Listener** (`listener/opencode-tray-listener.py`): ascolta la porta, scrive `/tmp/opencode-tray-state.json`.
-- **Estensione** (`extension.js`): indicatore nella panel (sinistra dell'orologio), menu con stati, costi, progetti, toggle, exit.
+- **Plugin** (`plugin/opencode-tray.js`): **unchanged**. Continues to POST to `127.0.0.1:47110`.
+- **Listener** (`listener/opencode-tray-listener.py`): listens on port, writes `/tmp/opencode-tray-state.json`.
+- **Extension** (`extension.js`): indicator in panel (left of clock), menu with statuses, costs, projects, toggle, exit.
 
 ## Comportamenti estratti da OpencodeTray.cs
 - Icona colorata: nero (idle), verde (working), giallo (attention)
@@ -28,11 +28,11 @@ chmod +x ~/.local/share/gnome-shell/extensions/opencode-tray@local/listener/*.py
 # 2. Avvia listener (in background)
 python3 ~/.local/share/gnome-shell/extensions/opencode-tray@local/listener/opencode-tray-listener.py &
 
-# 3. Ricarica GNOME Shell (Alt+F2 -> r su X11; su Wayland disconnetti e rientra)
-# 4. Attiva estensione con GNOME Tweaks / Extensions o via gsettings
+# 3. Reload GNOME Shell (Alt+F2 -> r on X11; on Wayland disconnect and reconnect)
+# 4. Activate extension with GNOME Tweaks / Extensions or via gsettings
 ```
 
 ## Note
-- Per mettere l'indicatore esattamente a sinistra dell'orologio: `Main.panel.addToStatusArea(..., 0, "right")`; se l'orologio è nel centro potrebbe servire un indice diverso a seconda della versione GNOME.
-- La stima costi completa (token, proiezioni settimanali/mensili) richiede il parsing del campo `models` inviato dal plugin; il script `cost-info-window.py` mostra lo stato attuale come primo passo.
-- Non sono stati aggiunti file alla logica di `opencode` o al plugin JS (come richiesto).
+- To place the indicator exactly left of the clock: `Main.panel.addToStatusArea(..., 0, "right")`; if the clock is in the center a different index may be needed depending on GNOME version.
+- Full cost estimation (tokens, weekly/monthly projections) requires parsing the `models` field sent by the plugin; `cost-info-window.py` shows current state as a first step.
+- No files have been added to `opencode` logic or the JS plugin (as requested).

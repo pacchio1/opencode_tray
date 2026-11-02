@@ -1,10 +1,10 @@
 /* opencode-tray - GNOME Shell 45+ extension
  *
  * Bridge: plugin opencode-tray.js -> HTTP POST 127.0.0.1:47110
- *         -> listener python -> /tmp/opencode-tray-state.json
- *         -> questa estensione legge il file ogni 2s.
+ *         -> python listener -> /tmp/opencode-tray-state.json
+ *         -> this extension reads the file every 2s.
  *
- * Stati: idle (grigio/nero) / working (verde) / attention (giallo).
+ * States: idle (gray/black) / working (green) / attention (yellow).
  */
 
 import GObject from 'gi://GObject';
@@ -149,7 +149,7 @@ class OpencodeTrayIndicator extends PanelMenu.Button {
         this.add_child(this._icon);
 
         // --- menu ---
-        this._statusItem = new PopupMenu.PopupMenuItem('stato: inattivo', {reactive: false});
+        this._statusItem = new PopupMenu.PopupMenuItem('status: inactive', {reactive: false});
         this.menu.addMenuItem(this._statusItem);
 
         this._costItem = new PopupMenu.PopupMenuItem('opencode: ca. 0.00 $', {reactive: false});
@@ -173,9 +173,9 @@ class OpencodeTrayIndicator extends PanelMenu.Button {
         this._posItem = new PopupMenu.PopupSubMenuMenuItem('Posizione nel pannello');
         this._posItems = {};
         const posLabels = {
-            left: 'Sinistra',
-            center: "Centro (accanto all'orologio)",
-            right: 'Destra',
+            left: 'Left',
+            center: "Center (next to clock)",
+            right: 'Right',
         };
         for (const key of ['left', 'center', 'right']) {
             const it = new PopupMenu.PopupMenuItem(posLabels[key]);
@@ -297,7 +297,7 @@ class OpencodeTrayIndicator extends PanelMenu.Button {
         if (!['idle', 'working', 'attention'].includes(state))
             state = 'idle';
 
-        // heartbeat: se il file è vecchio, opencode non c'è più
+        // heartbeat: if file is old, opencode is gone
         const hb = (readJson(SETTINGS_FILE)?.heartbeatTimeoutSec) ||
                    DEFAULT_HEARTBEAT_SEC;
         const ts = Number(d.ts ?? 0);

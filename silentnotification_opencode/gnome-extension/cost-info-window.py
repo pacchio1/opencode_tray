@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Finestra "Info costi" per l'estensione GNOME (equivalente a ShowCostInfo).
-Legge /tmp/opencode-tray-state.json (o argomento) e mostra una stima.
+"Cost info" window for the GNOME extension (equivalent to ShowCostInfo).
+Reads /tmp/opencode-tray-state.json (or argument) and shows an estimate.
 """
 import sys, os, json
 
@@ -23,23 +23,23 @@ def main():
     except Exception as e:
         data = {"error": str(e)}
 
-    # Costruzione testo base (simile a BuildCostReport)
-    lines = ["STIMA COSTI OPENCODE", "quanto pagherei se il modello non fosse gratis", ""]
-    lines.append("Stato: " + str(data.get("state", "?")))
-    lines.append("Istanza / progetto: " + str(data.get("project", "?")))
+    # Build base text (similar to BuildCostReport)
+    lines = ["OPENCODE COST ESTIMATE", "how much would I pay if the model were not free", ""]
+    lines.append("Status: " + str(data.get("state", "?")))
+    lines.append("Instance / project: " + str(data.get("project", "?")))
     lines.append("CWD: " + str(data.get("cwd", "?")))
-    lines.append("Costo stimato: ~" + str(data.get("cost", 0)) + " $")
+    lines.append("Estimated cost: ~" + str(data.get("cost", 0)) + " $")
     lines.append("")
     if isinstance(data.get("sessions"), list):
-        lines.append("Sessioni attive: " + str(len(data["sessions"])))
+        lines.append("Active sessions: " + str(len(data["sessions"])))
         for s in data["sessions"]:
             sid = s.get("id", "?")
             proj = s.get("project", "?")
             state = s.get("state", "?")
             lines.append("  - " + sid + " [" + proj + "] " + state)
     lines.append("")
-    lines.append("(Le proiezioni settimanali/mensili richiedono il parsing completo dei token;")
-    lines.append("per ora mostra lo stato corrente lettura dal listener.)")
+    lines.append("(Weekly/monthly projections require full token parsing;")
+    lines.append("for now shows current state read from listener.)")
     text = "\n".join(lines)
 
     # Se disponibile GTK 4
@@ -62,14 +62,14 @@ def main():
             pass
         app.connect("activate", on_activate)
         # Non avviamo il loop se non necessario; semplicemente mostriamo
-        # Per semplicità usiamo un approccio diretto con Gtk.main()
+        # For simplicity we use a direct approach with Gtk.main()
     except Exception as e:
         pass
 
     # Fallback: stampa su stdout / mostra con zenity o xmessage
     try:
         import subprocess
-        # Usa zenity per una finestra immediata
+        # Use zenity for an immediate window
         subprocess.run(["zenity", "--text-info", "--title=opencode - stima costi",
                         "--width=700", "--height=500", "--filename=-"],
                        input=text.encode(), capture_output=True)

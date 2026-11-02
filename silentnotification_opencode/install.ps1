@@ -1,6 +1,6 @@
 ﻿<#
     Opencode Tray - installer
-    Installa l'icona nella notification area di Windows + il plugin opencode.
+    Installs the icon in the Windows notification area + the opencode plugin.
     Non richiede diritti di amministratore (tutto in HKCU / LOCALAPPDATA).
 
     Uso:
@@ -58,7 +58,7 @@ function New-Shortcut($linkPath, $target) {
         $sc.WorkingDirectory = (Split-Path -Parent $target)
         $sc.WindowStyle = 7
         $sc.IconLocation = "$target,0"
-        $sc.Description = "$AppName - stato opencode nella barra delle icone"
+        $sc.Description = "$AppName - opencode status in the icon tray"
         $sc.Save()
     }
     finally {
@@ -87,9 +87,9 @@ if ((Test-Path -LiteralPath $exePath) -and -not $Force) {
 if ($needBuild) {
     & (Join-Path $Root "build.ps1") -OutputDir $InstallDir
 } else {
-    Write-Ok "binario già presente e aggiornato"
+    Write-Ok "binary already present and updated"
 }
-if (-not (Test-Path -LiteralPath $exePath)) { throw "$ExeName non trovato dopo la compilazione." }
+if (-not (Test-Path -LiteralPath $exePath)) { throw "$ExeName not found after compilation." }
 Copy-Item -LiteralPath (Join-Path $Root "uninstall.ps1") -Destination (Join-Path $InstallDir "uninstall.ps1") -Force
 Write-Ok "installato in $exePath"
 
@@ -156,7 +156,7 @@ if ($NoPlugin) {
 }
 
 $oc = (Get-Command opencode -ErrorAction SilentlyContinue)
-if ($oc) { Write-Ok "opencode trovato in $($oc.Source)" } else { Write-Note "opencode non trovato nel PATH" }
+if ($oc) { Write-Ok "opencode found at $($oc.Source)" } else { Write-Note "opencode not found in PATH" }
 
 # ---------------------------------------------------------------- 7. avvio
 if ($NoLaunch) {
@@ -176,9 +176,9 @@ if ($NoLaunch) {
 Write-Host ""
 Write-Host "  Installazione completata." -ForegroundColor Green
 Write-Host "  ---------------------------------------------" -ForegroundColor DarkGray
-Write-Host "  1. L'icona appare nella tendina delle icone nascoste (freccia ^ in basso a destra)."
-Write-Host "  2. RIAVVIA opencode, così il plugin viene caricato."
-Write-Host "  3. verde = sta lavorando | gialla = ha finito / serve una risposta | nera = inattivo."
-Write-Host "  4. Stealth: nessun popup e nessun suono (si attivano dal menu con doppio click sull'icona)."
-Write-Host "  5. Per rimuovere: Programmi e caratteristiche > $AppName > Disinstalla"
+Write-Host "  1. The icon appears in the hidden icon tray (arrow ^ at bottom right)."
+Write-Host "  2. RESTART opencode, so the plugin gets loaded."
+Write-Host "  3. green = working | yellow = finished / needs response | black = inactive."
+Write-Host "  4. Stealth: no popup and no sound (activated from menu with double click on icon)."
+Write-Host "  5. To remove: Programs and Features > $AppName > Uninstall"
 Write-Host ""

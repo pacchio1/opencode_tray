@@ -1,5 +1,5 @@
 ﻿<#
-    Opencode Tray - disinstallatore
+    Opencode Tray - uninstaller
     Rimuove processo, scorciatoie, voce di registro, impostazioni, plugin opencode
     e la cartella di installazione.
 
@@ -50,7 +50,7 @@ foreach ($link in @($startupLink, $startLink)) {
         try {
             Remove-Item -LiteralPath $link -Force
             Out "  rimossa scorciatoia: $(Split-Path -Leaf $link)" "Green"
-        } catch { Out "  impossibile rimuovere $link" "Yellow" }
+        } catch { Out "  unable to remove $link" "Yellow" }
     }
 }
 
@@ -61,7 +61,7 @@ if (Test-Path -LiteralPath $pluginDst) {
         try {
             Remove-Item -LiteralPath $pluginDst -Force
             Out "  rimosso plugin opencode: $pluginDst" "Green"
-        } catch { Out "  impossibile rimuovere il plugin" "Yellow" }
+        } catch { Out "  unable to remove plugin" "Yellow" }
     }
 }
 
@@ -72,7 +72,7 @@ if (Test-Path -LiteralPath $settingsDir) {
         try {
             Remove-Item -LiteralPath $settingsDir -Recurse -Force
             Out "  rimosse le impostazioni: $settingsDir" "Green"
-        } catch { Out "  impossibile rimuovere le impostazioni" "Yellow" }
+        } catch { Out "  unable to remove settings" "Yellow" }
     }
 }
 
@@ -89,15 +89,15 @@ if (Test-Path -LiteralPath (Join-Path $installDir $ExeName)) {
         Out "  rimossa la cartella di installazione: $installDir" "Green"
     }
 } else {
-    Out "  nessun eseguibile da rimuovere in $installDir" "DarkGray"
+    Out "  no executable to remove in $installDir" "DarkGray"
 }
 
 if (Test-Path -LiteralPath $uninstallKey) {
     try {
         Remove-Item -LiteralPath $uninstallKey -Recurse -Force
         Out "  rimossa la voce da Programmi e caratteristiche" "Green"
-    } catch { Out "  impossibile rimuovere la chiave di registro" "Yellow" }
+    } catch { Out "  unable to remove registry key" "Yellow" }
 }
 
-Out "  disinstallazione completata." "White"
+Out "  uninstallation completed." "White"
 Out "  RIAVVIA opencode per scaricare il plugin dalla sessione corrente." "DarkGray"

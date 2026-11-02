@@ -1,167 +1,166 @@
 ﻿# opencode-tray
 
-Icona nella **notification area di Windows** (la tendina delle icone nascoste, la freccia `^`
-in basso a destra) che mostra a colpo d'occhio cosa sta facendo opencode.
+Icon in the **Windows notification area** (the hidden icon tray, the arrow `^`
+at the bottom right) that shows at a glance what opencode is doing.
 
-| Stato opencode | Icona | Colore |
+| OpenCode status | Icon | Color |
 | --- | --- | --- |
-| sta lavorando (modello o tool in corso) | `O` con quadrato spezzato | **verde** |
-| serve una tua risposta (domanda, permissione, errore, retry) | `O` con quadrato spezzato | **gialla** |
-| ha finito di scrivere, aspetta il tuo prossimo messaggio | `O` con quadrato spezzato | **nera** |
+| working (model or tool running) | `O` with broken square | **green** |
+| needs your response (question, permission, error, retry) | `O` with broken square | **yellow** |
+| finished writing, waiting for your next message | `O` with broken square | **black** |
 
-La componente "strana" dentro la `O` è un quadrato dal contorno interrotto.
+The "strange" component inside the `O` is a square with interrupted outline.
 
-**Stealth di default**: nessun popup, nessun suono, nessuna animazione, nessuna finestra.
-Il segnale è **solo il colore dell'icona**. Le altre opzioni si attivano dal menu.
+**Stealth by default**: no popup, no sound, no animation, no window.
+The signal is **only the icon color**. Other options are activated from the menu.
 
 ---
 
-## Requisiti
+## Requirements
 
-- Windows 10 / 11 (usa solo il .NET Framework 4.x, già presente su ogni Windows)
-- opencode installato con lo script ufficiale:
+- Windows 10 / 11 (uses only .NET Framework 4.x, already present on every Windows)
+- opencode installed with the official script:
   ```sh
   curl -fsSL https://opencode.ai/v2/install | bash
   ```
-  (il plugin viene copiato in `~/.config/opencode/plugins/`)
-- Nessun diritto di amministratore richiesto: tutto in `HKCU` e `%LOCALAPPDATA%`
-- **Linux (GNOME)**: estensione Shell + listener Python; richiede `python3`, `gnome-extensions` e sessione GNOME attiva
+  (the plugin is copied to `~/.config/opencode/plugins/`)
+- No administrator rights required: everything in `HKCU` and `%LOCALAPPDATA%`
+- **Linux (GNOME)**: Shell extension + Python listener; requires `python3`, `gnome-extensions` and active GNOME session
 
-## Installazione
+## Installation
 
-Doppio click su `Install.cmd`, oppure:
+Double-click `Install.cmd`, or:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-Opzioni utili:
+Useful options:
 
 ```powershell
-# cambiare porta o disattivare l'avvio automatico
+# change port or disable auto-start
 powershell -ExecutionPolicy Bypass -File install.ps1 -Port 47110 -NoStartWithWindows
 
-# installare solo l'app, senza il plugin opencode
+# install only the app, without the opencode plugin
 powershell -ExecutionPolicy Bypass -File install.ps1 -NoPlugin
 
-# riscrivere le impostazioni con i valori predefiniti
+# reset settings to defaults
 powershell -ExecutionPolicy Bypass -File install.ps1 -Force
 ```
 
-L'installer:
+The installer:
 
-1. compila `OpencodeTray.exe` (sorgente in `src/`, nessuna dipendenza esterna);
-2. lo installa in `%LOCALAPPDATA%\Programs\opencode-tray`;
-3. scrive le impostazioni in `%APPDATA%\opencode-tray\settings.json`;
-4. crea la scorciatoia nel menu Start e (opzionale) quella di avvio automatico;
-5. registra la voce in **Programmi e caratteristiche** (con disinstallatore);
-6. installa il plugin `opencode-tray.js` in `~/.config/opencode/plugins/`;
-7. avvia l'app.
+1. compiles `OpencodeTray.exe` (source in `src/`, no external dependency);
+2. installs it in `%LOCALAPPDATA%\Programs\opencode-tray`;
+3. writes settings to `%APPDATA%\opencode-tray\settings.json`;
+4. creates the Start menu shortcut and (optional) the auto-start shortcut;
+5. registers the entry in **Programs and Features** (with uninstaller);
+6. installs plugin `opencode-tray.js` to `~/.config/opencode/plugins/`;
+7. starts the app.
 
-> **Dopo l'installazione riavvia opencode**: la configurazione, come tutti i plugin, viene
-> caricata una sola volta all'avvio.
+> **After installation restart opencode**: configuration, like all plugins, is loaded
+> once at startup.
 
-## Installazione Linux (GNOME)
+## Linux Installation (GNOME)
 
-Il componente tray su Linux è un'**estensione GNOME Shell** (indicatore nella panel) + un
-**listener Python** che ascolta lo stesso HTTP POST del plugin `opencode-tray.js`.
-Il plugin JS non cambia: è lo stesso `plugin/opencode-tray.js` usato su Windows.
+The tray component on Linux is a **GNOME Shell extension** (indicator in the panel) + a
+**Python listener** that listens to the same HTTP POST from plugin `opencode-tray.js`.
+The JS plugin does not change: it is the same `plugin/opencode-tray.js` used on Windows.
 
-### Comandi rapidi
+### Quick commands
 
 ```bash
-# da questa cartella
+# from this folder
 bash install-linux.sh
 ```
 
-Lo script:
+The script:
 
-1. copia `gnome-extension/` in `~/.local/share/gnome-shell/extensions/opencode-tray@local/`;
-2. copia `plugin/opencode-tray.js` in `~/.config/opencode/plugins/` (se presente);
-3. scrive `~/.config/opencode-tray/settings.json` (porta `47110`, default come Windows);
-4. crea il file di autostart `~/.config/autostart/opencode-tray.desktop`;
-5. avvia il listener in background (`python3 listener/opencode-tray-listener.py`);
-6. abilita l'estensione (se `gnome-extensions` è disponibile).
+1. copies `gnome-extension/` to `~/.local/share/gnome-shell/extensions/opencode-tray@local/`;
+2. copies `plugin/opencode-tray.js` to `~/.config/opencode/plugins/` (if present);
+3. writes `~/.config/opencode-tray/settings.json` (port `47110`, default like Windows);
+4. creates autostart file `~/.config/autostart/opencode-tray.desktop`;
+5. starts listener in background (`python3 listener/opencode-tray-listener.py`);
+6. enables the extension (if `gnome-extensions` is available).
 
-Poi **ricarica GNOME Shell** (`Alt+F2` → `r` su X11; su Wayland disconnetti / rientra) e attiva
-l'estensione da **GNOME Tweaks / Extensions** (o `gsettings`).
+Then **reload GNOME Shell** (`Alt+F2` → `r` on X11; on Wayland disconnect / reconnect) and activate
+the extension from **GNOME Tweaks / Extensions** (or `gsettings`).
 
-### Riavvio / avvio manuale
+### Restart / manual start
 
 ```bash
 bash linux-start.sh
 ```
 
-Questo controlla se il listener è già su `47110`; se no lo avvia (`nohup`) e abilita
-l'estensione. Per disattivare invece:
+This checks if the listener is already on `47110`; if not it starts it (`nohup`) and enables
+the extension. To disable instead:
 
 ```bash
 gnome-extensions disable opencode-tray@local
-# o rimuovi la cartella dell'estensione:
+# or remove the extension folder:
 rm -rf ~/.local/share/gnome-shell/extensions/opencode-tray@local
 ```
 
-### Percorsi Linux
+### Linux paths
 
-| Componente | Path |
+| Component | Path |
 | --- | --- |
-| Estensione GNOME | `~/.local/share/gnome-shell/extensions/opencode-tray@local/` |
+| GNOME Extension | `~/.local/share/gnome-shell/extensions/opencode-tray@local/` |
 | Listener | `.../listener/opencode-tray-listener.py` |
-| Stato atomico (tmp) | `/tmp/opencode-tray-state.json` |
-| Plugin opencode | `~/.config/opencode/plugins/opencode-tray.js` |
-| Impostazioni | `~/.config/opencode-tray/settings.json` |
-| Log listener | `/tmp/opencode-tray-listener.log` |
+| Atomic state (tmp) | `/tmp/opencode-tray-state.json` |
+| opencode Plugin | `~/.config/opencode/plugins/opencode-tray.js` |
+| Settings | `~/.config/opencode-tray/settings.json` |
+| Listener log | `/tmp/opencode-tray-listener.log` |
 
-Per dettagli sull'indice dell'indicatore (sinistra dell'orologio) o sulla finestra costi,
-vedi `gnome-extension/README.md`.
+For details on indicator index (left of clock) or cost window,
+see `gnome-extension/README.md`.
 
-## Uso
+## Usage
 
-**Windows**: l'icona sta nella tendina delle icone nascoste. Se non la vedi, trascinala fuori dalla
-freccia `^` in basso a destra per fissarla nella barra (Windows lo ricorda).
+**Windows**: the icon is in the hidden icon tray. If you don't see it, drag it out from
+the `^` arrow at the bottom right to pin it in the bar (Windows remembers).
 
-**Linux**: l'indicatore è nella panel (a sinistra dell'orologio, per default `index: 0` in
-`settings.json`). Se non compare dopo `Alt+F2 r`, controlla che l'estensione sia attiva
-(GNOME Tweaks / Extensions) e che il listener sia in esecuzione (`ps aux | grep listener`).
-- **Clic sinistro** sull'icona = menu (stato, costi, progetti, toggle, exit).
-- Il menu e gli stati sono gli stessi di Windows (nero / verde / giallo); la finestra costi
-si apre con `cost-info-window.py` (vedi `gnome-extension/README.md`).
-- **Doppio click** sull'icona = menu:
+**Linux**: the indicator is in the panel (left of clock, default `index: 0` in
+`settings.json`). If it doesn't appear after `Alt+F2 r`, check that the extension is active
+(GNOME Tweaks / Extensions) and that the listener is running (`ps aux | grep listener`).
+- **Left click** on the icon = menu (status, costs, projects, toggle, exit).
+- The menu and states are the same as Windows (black / green / yellow); the cost window
+opens with `cost-info-window.py` (see `gnome-extension/README.md`).
+- **Double click** on the icon = menu:
 
-| Voce | Effetto |
+| Item | Effect |
 | --- | --- |
-| stato: … | stato corrente + numero di istanze opencode attive |
-| opencode: ca. …$ | stima del costo (quanto pagheresti se il modello non fosse gratis) |
-| Istanze opencode (N) | elenco dei progetti: quale sta lavorando, quale è bloccato in attesa |
-| Azzera conteggio costi | azzera il conteggio dei costi (la stima riparte da zero) |
-| Info costi (modello - token) | finestra con la stima per progetto/modello e la proiezione settimanale |
-| Popup di notifica | **disattivato** di default; se attivo compare il balloon "attenzione" |
-| Suono di avviso | **disattivato** di default |
-| Icona lampeggiante in attesa | **disattivato** di default; se attivo lampeggia in giallo per 7 secondi |
-| Avvia con Windows | crea/rimuove la scorciatoia nella cartella Startup |
-| Apri configurazione opencode / installazione / configurazione tray | apre le cartelle |
-| Esci | chiude l'app |
+| status: … | current status + number of active opencode instances |
+| opencode: ca. …$ | cost estimate (how much you would pay if the model were not free) |
+| OpenCode instances (N) | list of projects: which is working, which is blocked waiting |
+| Reset cost count | resets cost counting (estimate restarts from zero) |
+| Cost info (model - token) | window with estimate per project/model and weekly projection |
+| Notification popup | **disabled** by default; when active a "attention" balloon appears |
+| Warning sound | **disabled** by default |
+| Blinking icon when waiting | **disabled** by default; when active blinks yellow for 7 seconds |
+| Start with Windows | creates/removes shortcut in Startup folder |
+| Open opencode config / installation / tray config | opens folders |
+| Exit | closes app |
 
-### La stima dei costi
+### Cost estimation
 
-- La stima risponde a una domanda sola: **quanto pagherei se il modello non fosse gratis**.
-- I modelli gratuiti (es. `minimax-m3.1-flash-free`) vengono valutati con il listino del
-  gemello a pagamento più vicino (es. `minimax-m3`): la finestra mostra sempre
-  `prezzo di <modello>` quando la stima non usa il listino del modello stesso.
-- I prezzi vengono letti dal registry locale di opencode (`~/.cache/opencode/models.json`)
-  e ricaricati quando opencode lo aggiorna.
-- **Nella stima entrano solo i token dei provider di opencode** (`opencode`, `opencode-go`):
-  i token passati da **openrouter** (o da altri provider) sono esclusi, perché hanno un
-  listino diverso.
-- La finestra "Info costi" mostra, per ogni progetto, i token e il costo per modello, il
-  totale di oggi/7 giorni e una **proiezione settimanale e mensile** calcolata sulla media
-  giornaliera osservata.
-- I costi sono attribuiti a **sessione** (non al processo): ogni sessione opencode viene
-  seguita separatamente e i token sono sommati per progetto, quindi due opencode sullo
-  stesso progetto non si contano due volte e un opencode chiuso non fa sparire il totale.
+- The estimate answers a single question: **how much would I pay if the model were not free**.
+- Free models (e.g. `minimax-m3.1-flash-free`) are evaluated with the price list of the
+  closest paid twin (e.g. `minimax-m3`): the window always shows
+  `price of <model>` when the estimate does not use the model's own price list.
+- Prices are read from opencode's local registry (`~/.cache/opencode/models.json`)
+  and reloaded when opencode updates it.
+- **Only opencode provider tokens enter the estimate** (`opencode`, `opencode-go`):
+  tokens passed by **openrouter** (or other providers) are excluded, because they have a
+  different price list.
+- The "Cost info" window shows, for each project, tokens and cost per model, today's/7-day total
+  and a **weekly and monthly projection** calculated on the observed daily average.
+- Costs are attributed to **session** (not process): each opencode session is followed separately
+  and tokens are summed per project, so two opencode on the same project are not counted twice
+  and a closed opencode does not erase the total.
 
-Le impostazioni si possono anche scrivere a mano in
-`%APPDATA%\opencode-tray\settings.json` (Windows) o `~/.config/opencode-tray/settings.json` (Linux):
+Settings can also be written manually in
+`%APPDATA%\opencode-tray\settings.json` (Windows) or `~/.config/opencode-tray/settings.json` (Linux):
 
 ```json
 {
@@ -174,145 +173,142 @@ Le impostazioni si possono anche scrivere a mano in
 }
 ```
 
-`heartbeatTimeoutSec` è quanto tempo l'icona resta colorata dopo l'ultimo segnale di opencode:
-scaduto il timeout (opencode chiuso) l'icona torna nera.
+`heartbeatTimeoutSec` is how long the icon stays colored after the last opencode signal:
+when timeout expires (opencode closed) the icon turns black.
 
-## Disinstallazione
+## Uninstallation
 
-Doppio click su `Uninstall.cmd`, oppure:
+Double-click `Uninstall.cmd`, or:
 
-- **Programmi e caratteristiche** → *Opencode Tray* → *Disinstalla*
-- oppure dalla cartella di installazione:
+- **Programs and Features** → *Opencode Tray* → *Uninstall*
+- or from the installation folder:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File uninstall.ps1
 ```
 
-Vengono rimossi processo, scorciatoie (Start e Startup), voce di registro, cartella di
-installazione, impostazioni e plugin opencode. Per tenere qualcosa:
+Process, shortcuts (Start and Startup), registry entry, installation folder, settings and
+opencode plugin are removed. To keep something:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File uninstall.ps1 -KeepPlugin -KeepSettings
 ```
 
-Dopo la disinstallazione **riavvia opencode**, altrimenti il plugin resta caricato nella
-sessione corrente (e invia solo POST falliti, ignorati).
+After uninstallation **restart opencode**, otherwise the plugin stays loaded in the
+current session (and sends only failed POSTs, ignored).
 
-### Disinstallazione Linux
+### Linux Uninstallation
 
 ```bash
-# disattiva estensione e rimuovi listener/autostart
+# disable extension and remove listener/autostart
 rm -rf ~/.local/share/gnome-shell/extensions/opencode-tray@local
 rm -rf ~/.config/autostart/opencode-tray.desktop
-# opzione: rimuovi anche plugin e impostazioni
+# option: also remove plugin and settings
 rm -rf ~/.config/opencode/plugins/opencode-tray.js
 rm -rf ~/.config/opencode-tray
-# uccidi listener se ancora attivo
+# kill listener if still active
 kill $(pgrep -f 'opencode-tray-listener.py') 2>/dev/null || true
 ```
 
-Poi ricarica GNOME Shell (`Alt+F2 r`) se vuoi rimuovere l'indicatore immediatamente.
+Then reload GNOME Shell (`Alt+F2 r`) if you want to remove the indicator immediately.
 
-## Come funziona
+## How it works
 
 ```
-opencode  --(eventi)-->  plugin opencode-tray.js
+opencode  --(events)-->  opencode-tray.js plugin
                              |
                              |  HTTP POST http://127.0.0.1:47110/state
                              |  { state, reason, cost, models, sessions, pid, project, cwd, ts }
                              v
-                      OpencodeTray.exe  --(icona + colore)-->  notification area
+                      OpencodeTray.exe  --(icon + color)-->  notification area
 ```
 
-- Il plugin ascolta gli eventi della sessione (`session.status`, `session.idle`,
+- The plugin listens to session events (`session.status`, `session.idle`,
   `message.updated`, `message.part.updated`, `permission.updated`, `permission.replied`,
-  `session.error`, `session.created/deleted`) e i hook `tool.execute.*` / `permission.ask`.
-  Tiene uno stato per sessione e invia quello più "urgente".
-- Il plugin manda una riga per **sessione** (`sessions`): id, progetto, cartella, stato,
-  attività (tool in corso), costo 24h/7d e i token per modello. Il tray raggruppa per
-  progetto e calcola i totali come differenza rispetto all'ultimo valore ricevuto: se
-  opencode riparte, il totale non torna mai indietro.
-- **Il giallo è una richiesta aperta, non un "ho finito"**: resta acceso finché la domanda, la
-  permissione o l'errore non è stato soddisfatto. Se opencode ha semplicemente finito di scrivere
-  e aspetta il prossimo messaggio, l'icona resta **nera**; il giallo si accende solo quando
-  serve davvero una tua azione.
-- Ogni 4 secondi il plugin manda un heartbeat: serve a far sapere all'app tray che opencode è
-  vivo. Se i heartbeat spariscono (opencode chiuso) per `heartbeatTimeoutSec`, l'icona resta nera.
-- L'app tray è un server TCP minimo su `127.0.0.1` (nessun `HttpListener`, quindi nessun
-  URL ACL e nessun admin) e un'istanza singola (mutex).
-- Se ci sono più opencode aperti, l'icona mostra lo stato peggiore e il menu mostra quante
-  istanze sono collegate.
+  `session.error`, `session.created/deleted`) and hooks `tool.execute.*` / `permission.ask`.
+  It keeps a state per session and sends the most "urgent" one.
+- The plugin sends one line per **session** (`sessions`): id, project, folder, status,
+  activity (tool running), 24h/7d cost and tokens per model. The tray groups by
+  project and calculates totals as difference from last received value: if opencode restarts,
+  total never goes backward.
+- **Yellow is an open request, not a "I finished"**: it stays on until the question, permission
+  or error has been satisfied. If opencode has simply finished writing and is waiting for the
+  next message, the icon stays **black**; yellow turns on only when your action is really needed.
+- Every 4 seconds the plugin sends a heartbeat: it tells the tray app that opencode is alive.
+  If heartbeats disappear (opencode closed) for `heartbeatTimeoutSec`, the icon turns black.
+- The tray app is a minimal TCP server on `127.0.0.1` (no `HttpListener`, so no URL ACL and no admin)
+  and a single instance (mutex).
+- If there are multiple opencode open, the icon shows the worst state and the menu shows how
+  many instances are connected.
 
-### Struttura del progetto
+### Project structure
 
 ```
 silentnotification_opencode/
-├── Install.cmd / Uninstall.cmd     wrapper comodi
+├── Install.cmd / Uninstall.cmd     convenient wrappers
 ├── install.ps1                     installer
-├── uninstall.ps1                   disinstallatore (copiato anche nella cartella di installazione)
-├── build.ps1                       compilazione (csc.exe del .NET Framework)
-├── install-linux.sh                 installer Linux (GNOME)
-├── linux-start.sh                   avvio manuale listener + estensione
-├── plugin/opencode-tray.js         plugin opencode (copiato in ~/.config/opencode/plugins/; invariato su Linux)
-├── src/OpencodeTray.cs             app tray Windows: icona, stati, menu, server
-├── gnome-extension/                estensione GNOME Shell + listener Python + cost-info-window
-├── dist/                           eseguibile compilato (build.ps1)
-└── readme.md                       questo file
+├── uninstall.ps1                   uninstaller (also copied to install folder)
+├── build.ps1                       build (csc.exe of .NET Framework)
+├── install-linux.sh                 Linux installer (GNOME)
+├── linux-start.sh                   manual listener + extension start
+├── plugin/opencode-tray.js         opencode plugin (copied to ~/.config/opencode/plugins/; unchanged on Linux)
+├── src/OpencodeTray.cs             Windows tray app: icon, states, menu, server
+├── gnome-extension/                GNOME Shell extension + Python listener + cost-info-window
+├── dist/                           compiled executable (build.ps1)
+└── readme.md                       this file
 ```
 
-Log: `%APPDATA%\opencode-tray\tray.log` (cambiamenti di stato e connessioni/disconnessioni).
+Log: `%APPDATA%\opencode-tray\tray.log` (state changes and connections/disconnections).
 
-### File di stato (perché i costi non si perdono)
+### State files (why costs don't get lost)
 
-| File | Contenuto | Potatura |
+| File | Content | Pruning |
 | --- | --- | --- |
-| `%APPDATA%\opencode-tray\plugin-state.txt` | sessioni opencode, token e costi per modello, cesti orari, step già contati | sessioni > 45 gg, cesti > 31 gg, step > 14 gg |
-| `%APPDATA%\opencode-tray\cost-base.txt` | basi dell'azzeramento "Azzera conteggio costi" | manuale (si riscrive a ogni azzeramento) |
+| `%APPDATA%\opencode-tray\plugin-state.txt` | opencode sessions, tokens and costs per model, hourly baskets, already counted steps | sessions > 45 days, baskets > 31 days, steps > 14 days |
+| `%APPDATA%\opencode-tray\cost-base.txt` | reset bases for "Reset cost count" | manual (rewritten on each reset) |
 
-Il plugin salva `plugin-state.txt` ogni 20 secondi (in scrittura atomica) e lo rilegge
-all'avvio: **riavviando opencode il totale NON riparte da zero** e gli step già contati non
-vengono contati due volte. L'app tray salva le basi di conteggio: riavviandola, il
-conteggio riparte da dove era stato azzerato.
+The plugin saves `plugin-state.txt` every 20 seconds (atomic write) and reads it back
+at startup: **restarting opencode does NOT reset the total to zero** and already counted
+steps are not counted twice. The tray app saves reset bases: if restarted, counting resumes
+from where it was reset.
 
-## Diagnostica
+## Diagnostics
 
 ```powershell
-# processo e porta
+# process and port
 Get-Process OpencodeTray
 Get-NetTCPConnection -LocalPort 47110 -State Listen
 
-# stato corrente
+# current state
 Get-Content $env:APPDATA\opencode-tray\tray.log -Tail 20
 
-# test delle icone senza opencode (attenzione per 15 secondi)
+# test icons without opencode (attention for 15 seconds)
 & "$env:LOCALAPPDATA\Programs\opencode-tray\OpencodeTray.exe" --test-attention
 ```
 
-Se la porta è occupata da un'altra istanza l'app lo segnala nel log e nel tooltip
-(`porta 47110 occupata`): per cambiarla, modifica `port` in `settings.json` **e** la variabile
-`OPENCODE_TRAY_PORT` dell'ambiente in cui gira opencode.
+If the port is occupied by another instance the app reports it in log and tooltip
+(`port 47110 occupied`): to change it, modify `port` in `settings.json` **and** the
+`OPENCODE_TRAY_PORT` environment variable of the process running opencode.
 
-## Note / problemi noti
+## Notes / known issues
 
-- **Il plugin va ricaricato**: dopo ogni modifica a `opencode-tray.js` riavvia opencode.
-- **Antivirus**: alcuni prodotti (es. Sophos Intercept X) bloccano l'eseguibile appena
-  compilato. Per questo `build.ps1` non usa `/optimize+` e verifica che il file sia
-  leggibile; se resta bloccato, aggiungi la cartella di installazione tra le esclusioni.
-- **Popup di Windows**: se in futuro attivi il balloon e non compare, controlla
-  *Impostazioni → Sistema → Notifiche*.
-- **Più istanze**: l'app tray ne ammette una sola (mutex `Local\OpencodeTray.SingleInstance`).
+- **Plugin must be reloaded**: after every change to `opencode-tray.js` restart opencode.
+- **Antivirus**: some products (e.g. Sophos Intercept X) block the executable right after
+  compilation. For this `build.ps1` does not use `/optimize+` and checks that the file is
+  readable; if it stays blocked, add the installation folder to exclusions.
+- **Windows popup**: if in future you activate the balloon and it doesn't appear, check
+  *Settings → System → Notifications*.
+- **Multiple instances**: the tray app allows only one (mutex `Local\OpencodeTray.SingleInstance`).
 
-## Diagnostica rapida
+## Quick diagnostics
 
 ```powershell
-# aprire la finestra della stima costi senza passare dal menu
+# open cost window without going through menu
 & "$env:LOCALAPPDATA\Programs\opencode-tray\OpencodeTray.exe" --show-costs
 
-# aprire il menu dell'icona
+# open icon menu
 & "$env:LOCALAPPDATA\Programs\opencode-tray\OpencodeTray.exe" --show-menu
 ```
 
-Fatto: menu senza le voci di prova, stima costi riformattata con proiezione
-settimanale, costi attribuiti per sessione/progetto, elenco dei progetti nel menu
-e token openrouter esclusi dalla stima.
-
+Done: menu without test items, cost estimate reformatted with weekly projection,
+costs attributed per session/project, project list in menu and openrouter tokens excluded from estimate.

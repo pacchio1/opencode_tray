@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Listener bridge per opencode-tray su Linux.
-Ascolta su 127.0.0.1:47110 (o OPENCODE_TRAY_PORT) i POST del plugin
-opencode-tray.js e scrive lo stato in /tmp/opencode-tray-state.json.
+Listener bridge for opencode-tray on Linux.
+Listens on 127.0.0.1:47110 (or OPENCODE_TRAY_PORT) to POSTs from plugin
+opencode-tray.js and writes state to /tmp/opencode-tray-state.json.
 
-Non tocca la logica del plugin: il plugin continua a inviare POST
-esattamente come su Windows.
+Does not touch plugin logic: plugin continues to send POST
+exactly as on Windows.
 """
 import os, sys, json, http.server, socketserver, threading
 
@@ -17,7 +17,7 @@ class ReusableTCPServer(socketserver.TCPServer):
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
-        # silenzioso per non disturbare
+        # quiet to avoid disturbing
         pass
 
     def do_POST(self):
@@ -30,7 +30,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(tmp, "w") as f:
                 f.write(json.dumps(data, ensure_ascii=False))
             os.rename(tmp, OUT)
-            # Risposta OK (il plugin ignora la risposta)
+            # OK response (plugin ignores response)
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"{\"ok\":true}")
@@ -40,7 +40,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(str(e).encode())
 
     def do_GET(self):
-        # Per debug / verifica
+        # For debug / verify
         self.send_response(200)
         self.end_headers()
         try:

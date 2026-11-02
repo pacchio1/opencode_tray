@@ -1,5 +1,5 @@
 #!/bin/bash
-# install-linux.sh - installer Linux per opencode-tray (GNOME extension)
+# install-linux.sh - Linux installer for opencode-tray (GNOME extension)
 # Usa il proprio percorso come base (funziona da qualsiasi cwd)
 
 set -euo pipefail
@@ -27,7 +27,7 @@ if ! command -v python3 &>/dev/null; then
     echo -e "${RED}python3 mancante${NC}"; exit 1
 fi
 
-# 2. Copia estensione (pulita)
+# 2. Copy extension (clean)
 mkdir -p "$EXT_DIR"
 cp -r "$SCRIPT_DIR/gnome-extension/"* "$EXT_DIR/"
 # Rimuovi manifest se presente, assicurati metadata.json
@@ -35,7 +35,7 @@ if [ -f "$EXT_DIR/manifest.json" ]; then
     mv "$EXT_DIR/manifest.json" "$EXT_DIR/metadata.json" || true
 fi
 chmod +x "$LISTENER_PY" 2>/dev/null || true
-echo "[install] Estensione installata in $EXT_DIR"
+echo "[install] Extension installed to $EXT_DIR"
 
 # 3. Impostazioni (default come Windows)
 mkdir -p "$SETTINGS_DIR"
@@ -57,7 +57,7 @@ if [ -f "$PLUGIN_SRC" ]; then
     cp "$PLUGIN_SRC" "$PLUGIN_DST"
     echo "[install] Plugin opencode: $PLUGIN_DST"
 else
-    echo "[install] Plugin sorgente non trovato (opzionale, ripartire opencode per ricarica)"
+    echo "[install] Plugin source not found (optional, restart opencode to reload)"
 fi
 
 # 5. Autostart (equivalente startWithWindows)
@@ -72,25 +72,25 @@ X-GNOME-Autostart-enabled=true
 EOF
 echo "[install] Autostart: $HOME/.config/autostart/opencode-tray.desktop"
 
-# 6. Avvia listener ora
+# 6. Start listener now
 if ! ss -tlnp 2>/dev/null | grep -q ':47110'; then
     nohup python3 "$LISTENER_PY" > /tmp/opencode-tray-listener.log 2>&1 &
-    echo "[install] Listener avviato (PID $!)"
+    echo "[install] Listener started (PID $!)"
 else
-    echo "[install] Listener già attivo su 47110"
+    echo "[install] Listener already active on 47110"
 fi
 
-# 7. Abilita estensione (se sessione GNOME attiva)
+# 7. Enable extension (if GNOME session active)
 if command -v gnome-extensions &>/dev/null; then
     gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
-    echo "[install] Estensione abilitata (ricarica con Alt+F2 r se non compare)"
+    echo "[install] Extension enabled (reload with Alt+F2 r if not visible)"
 fi
 
-echo -e "${GREEN}[install] Fatto.${NC}"
+echo -e "${GREEN}[install] Done.${NC}"
 echo "    Estensione: $EXT_DIR"
 echo "    Listener:   $LISTENER_PY"
 echo "    Plugin:     $PLUGIN_DST"
 echo "    Settings:   $SETTINGS_FILE"
 echo "    Autostart:  $HOME/.config/autostart/opencode-tray.desktop"
 echo ""
-echo "Per disinstallare: ridere install-linux.sh con -uninstall o rimuovere manualmente."
+echo "To uninstall: run install-linux.sh with -uninstall or remove manually."

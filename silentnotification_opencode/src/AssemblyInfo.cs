@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("opencode tray")]
-[assembly: AssemblyDescription("Notifica lo stato di opencode nella notification area di Windows")]
+[assembly: AssemblyDescription("Notifies opencode status in the Windows notification area")]
 [assembly: AssemblyProduct("opencode tray")]
 [assembly: AssemblyCompany("MP")]
 [assembly: AssemblyCopyright("Copyright (C) 2026")]
