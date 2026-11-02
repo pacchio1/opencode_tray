@@ -19,7 +19,11 @@ Il segnale è **solo il colore dell'icona**. Le altre opzioni si attivano dal me
 ## Requisiti
 
 - Windows 10 / 11 (usa solo il .NET Framework 4.x, già presente su ogni Windows)
-- opencode installato (il plugin viene copiato in `~/.config/opencode/plugins/`)
+- opencode installato con lo script ufficiale:
+  ```sh
+  curl -fsSL https://opencode.ai/v2/install | bash
+  ```
+  (il plugin viene copiato in `~/.config/opencode/plugins/`)
 - Nessun diritto di amministratore richiesto: tutto in `HKCU` e `%LOCALAPPDATA%`
 
 ## Installazione

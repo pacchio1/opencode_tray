@@ -36,14 +36,17 @@ const INSTANCE = String(process.pid || "0")
 
 // versione del plugin: il tray non la usa, serve solo a verificare quale
 // versione e' stata caricata in memoria da ciascun processo opencode
-const PLUGIN_V = 10
+const PLUGIN_V = 12
 
 const REASON_QUESTION = "opencode ti chiede una risposta"
 const REASON_PERMISSION = "opencode chiede una permissione"
 const REASON_ERROR = "errore durante l'esecuzione"
 const REASON_RETRY = "connessione instabile: sto riprovando"
 
-const QUESTION_TOOLS = ["question", "ask_user"]
+const QUESTION_TOOLS = ["question", "ask_user", "askuser", "ask", "ask_user_question"]
+
+// nomi dei tool gia' visti (diagnostica: quale tool chiede all'utente)
+const seenTools = new Set()
 
 // sessionID -> entry
 //   state    : idle | working | attention (stato mostrato)
@@ -450,10 +453,21 @@ const STATE_FILE = "plugin-state.txt"
 let stateDirty = false
 let lastSaveAt = 0
 
-function statePath() {
+// cartella di stato/log: su Windows %APPDATA%\opencode-tray, su Linux
+// ~/.config/opencode-tray (stessa cartella usata dall'estensione GNOME)
+function configDir() {
   const appdata = process.env.APPDATA || ""
-  if (!appdata) return null
-  return appdata + "\\opencode-tray\\" + STATE_FILE
+  if (appdata) return appdata + "\\opencode-tray"
+  const home = process.env.HOME || ""
+  if (!home) return null
+  return home + "/.config/opencode-tray"
+}
+
+function statePath() {
+  const dir = configDir()
+  if (!dir) return null
+  const sep = dir.indexOf("\\") >= 0 ? "\\" : "/"
+  return dir + sep + STATE_FILE
 }
 
 function safeField(s) {
@@ -593,10 +607,13 @@ async function diag(line) {
   try {
     const fs = await import("node:fs")
     const path = await import("node:path")
-    const appdata = process.env.APPDATA || ""
-    if (appdata) {
+    const dir = configDir()
+    if (dir) {
+      try {
+        fs.mkdirSync(dir, { recursive: true })
+      } catch {}
       fs.appendFileSync(
-        path.join(appdata, "opencode-tray", "plugin-events.log"),
+        path.join(dir, "plugin-events.log"),
         new Date().toISOString() + "  pid" + INSTANCE + "  " + line + "\n"
       )
     }
@@ -760,9 +777,26 @@ function isQuestion(tool) {
   return QUESTION_TOOLS.indexOf(tool) >= 0
 }
 
+// Il payload degli eventi non ha la stessa forma in tutte le versioni di
+// opencode: la v2 usa event.data, la v1 event.properties.
+function eventData(event) {
+  return (event && (event.data || event.properties)) || {}
+}
+
+// La sessione puo' stare in punti diversi del payload: in cima (session.*),
+// dentro info (message.updated v1) o dentro form (form.created/form.*).
+function sessionIDOf(p) {
+  if (!p) return ""
+  if (typeof p.sessionID === "string" && p.sessionID.length > 0) return p.sessionID
+  if (p.info && typeof p.info.sessionID === "string" && p.info.sessionID.length > 0)
+    return p.info.sessionID
+  if (p.form && typeof p.form.sessionID === "string" && p.form.sessionID.length > 0)
+    return p.form.sessionID
+  return ""
+}
+
 function sessionOf(properties) {
-  const sid = properties && properties.sessionID
-  return typeof sid === "string" && sid.length > 0 ? sid : "main"
+  return sessionIDOf(properties) || "main"
 }
 
 // ----------------------------------------------------------------- plugin
@@ -774,10 +808,13 @@ export const OpencodeTrayPlugin = async () => {
   try {
     const fs = await import("node:fs")
     const path = await import("node:path")
-    const appdata = process.env.APPDATA || ""
-    if (appdata) {
+    const dir = configDir()
+    if (dir) {
+      try {
+        fs.mkdirSync(dir, { recursive: true })
+      } catch {}
       fs.appendFileSync(
-        path.join(appdata, "opencode-tray", "plugin-versions.log"),
+        path.join(dir, "plugin-versions.log"),
         new Date().toISOString() + "  plugin v" + PLUGIN_V + " caricato (pid " + INSTANCE + ") - listino " + Object.keys(priceTable || {}).length + " modelli\n"
       )
     }
@@ -809,11 +846,11 @@ export const OpencodeTrayPlugin = async () => {
   }, HEARTBEAT_MS)
   if (heartbeat && typeof heartbeat.unref === "function") heartbeat.unref()
 
-  return {
+  const handlers = {
     event: async ({ event }) => {
       try {
         lastEventAt = Date.now()
-        const p = event.properties || {}
+        const p = eventData(event)
         if (!seenEvents.has(event.type)) {
           seenEvents.add(event.type)
           await diag("EVT " + event.type)
@@ -826,6 +863,59 @@ export const OpencodeTrayPlugin = async () => {
           case "session.deleted":
             sessions.delete(sessionOf(p))
             recompute()
+            break
+
+          // opencode v2: il turno inizia con execution.started e finisce con
+          // execution.succeeded/interrupted/failed. Questi eventi sono la
+          // fonte affidabile per accendere e spegnere l'icona: senza di loro
+          // l'icona restava verde dopo la fine della risposta.
+          case "session.execution.started":
+          case "session.inbox.enqueued":
+          case "session.inbox.delivered":
+            clearPending(sessionOf(p))
+            setState(sessionOf(p), "working", "")
+            break
+
+          case "session.execution.succeeded":
+          case "session.execution.interrupted":
+            endOfTurn(sessionOf(p))
+            break
+
+          case "session.execution.failed":
+            setTransient(sessionOf(p), REASON_ERROR)
+            break
+
+          case "session.retry.scheduled":
+            setTransient(sessionOf(p), REASON_RETRY)
+            break
+
+          case "session.step.started":
+          case "session.step.ended":
+            setActivity(sessionOf(p), "modello")
+            setState(sessionOf(p), "working", "")
+            break
+
+          case "session.step.failed":
+            setTransient(sessionOf(p), REASON_ERROR)
+            break
+
+          case "session.text.started":
+            setActivity(sessionOf(p), "risposta")
+            setState(sessionOf(p), "working", "")
+            break
+
+          case "session.reasoning.started":
+            setActivity(sessionOf(p), "modello")
+            setState(sessionOf(p), "working", "")
+            break
+
+          case "session.tool.called":
+          case "session.tool.success":
+            setState(sessionOf(p), "working", "")
+            break
+
+          case "session.tool.failed":
+            setTransient(sessionOf(p), REASON_ERROR)
             break
 
           case "session.status": {
@@ -938,11 +1028,16 @@ export const OpencodeTrayPlugin = async () => {
 
           // domande all'utente (tool question): eventi dedicati del namespace v2
           case "question.asked":
+          // opencode v2: il tool question apre un form e resta in attesa
+          // finche' l'utente non risponde (form.replied) o annulla.
+          case "form.created":
             setPending(sessionOf(p), REASON_QUESTION)
             break
 
           case "question.replied":
           case "question.rejected":
+          case "form.replied":
+          case "form.cancelled":
             clearPending(sessionOf(p))
             setState(sessionOf(p), "working", "")
             break
@@ -954,7 +1049,12 @@ export const OpencodeTrayPlugin = async () => {
       try {
         lastEventAt = Date.now()
         const sid = sessionOf(input)
-        if (isQuestion(input && input.tool)) setPending(sid, REASON_QUESTION)
+        const tool = (input && input.tool) || ""
+        if (!seenTools.has(tool)) {
+          seenTools.add(tool)
+          await diag("TOOL " + tool)
+        }
+        if (isQuestion(tool)) setPending(sid, REASON_QUESTION)
         else {
           setActivity(sid, (input && input.tool) || "tool")
           setState(sid, "working", "")
@@ -978,6 +1078,55 @@ export const OpencodeTrayPlugin = async () => {
       } catch {}
     },
   }
+  Object.defineProperty(handlers, "dispose", { value: () => clearInterval(heartbeat) })
+  return handlers
 }
 
-export default OpencodeTrayPlugin
+export default {
+  id: "opencode-tray",
+
+  // OpenCode v2 plugin API. The legacy handlers are adapted to v2's event
+  // stream and hook registration instead of being returned as a v1 plugin.
+  async setup(ctx) {
+    const handlers = await OpencodeTrayPlugin()
+    const controller = new AbortController()
+
+    void (async () => {
+      try {
+        for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+          await handlers.event({ event })
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) console.error("opencode-tray event stream failed", error)
+      }
+    })()
+
+    await ctx.tool.hook("execute.before", async (event) => {
+      await handlers["tool.execute.before"]({
+        tool: event.tool,
+        sessionID: event.sessionID,
+      })
+    })
+    await ctx.tool.hook("execute.after", async (event) => {
+      await handlers["tool.execute.after"]({
+        tool: event.tool,
+        sessionID: event.sessionID,
+      })
+    })
+    await ctx.permission.hook("evaluate", async (event) => {
+      if (event.effect === "ask") {
+        await handlers["permission.ask"]({ sessionID: event.sessionID })
+      }
+    })
+
+    return () => {
+      controller.abort()
+      handlers.dispose()
+    }
+  },
+
+  // Keep support for OpenCode v1 installations using the legacy plugin API.
+  async server() {
+    return OpencodeTrayPlugin()
+  },
+}
